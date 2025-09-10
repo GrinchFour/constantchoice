@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Сцена, камера, рендерер
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 1);
+        document.body.appendChild(renderer.domElement);
+
+        // Свет
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xff4422, 1, 100);
+        pointLight.position.set(10, 10, 10);
+        scene.add(pointLight);
+        const pointLight2 = new THREE.PointLight(0x44ff88, 1, 100);
+        pointLight2.position.set(-10, -10, -10);
+        scene.add(pointLight2);
+
+        // Создаем множество геометрических фигур
+        const geometries = [
+            new THREE.IcosahedronGeometry(1, 0),
+            new THREE.OctahedronGeometry(1, 0),
+            new THREE.TetrahedronGeometry(1, 0),
+            new THREE.TorusKnotGeometry(0.7, 0.2, 100, 16),
+            new THREE.ConeGeometry(1, 2, 8)
+        ];
+
+        const materials = [
+            new THREE.MeshPhongMaterial({ color: 0xff0066, wireframe: true }),
+            new THREE.MeshPhongMaterial({ color: 0x00ff88, wireframe: true }),
+            new THREE.MeshPhongMaterial({ color: 0x8844ff, wireframe: true })
+        ];
+
+        const objects = [];
+        const numObjects = 30;
+
+        for (let i = 0; i < numObjects; i++) {
+            const geometry = geometries[Math.floor(Math.random() * geometries.length)];
+            const material = materials[Math.floor(Math.random() * materials.length)];
+            const mesh = new THREE.Mesh(geometry, material);
+            
+            // Случайная позиция, вращение и масштаб
+            mesh.position.x = (Math.random() - 0.5) * 20;
+            mesh.position.y = (Math.random() - 0.5) * 20;
+            mesh.position.z = (Math.random() - 0.5) * 20;
+            
+            mesh.rotation.x = Math.random() * Math.PI;
+            mesh.rotation.y = Math.random() * Math.PI;
+            
+            const scale = Math.random() * 1.5 + 0.5;
+            mesh.scale.set(scale, scale, scale);
+            
+            // Сохраняем исходные параметры для анимации
+            mesh.userData = {
+                speedRotX: Math.random() * 0.02 - 0.01,
+                speedRotY: Math.random() * 0.02 - 0.01,
+                speedRotZ: Math.random() * 0.02 - 0.01,
+                amplitude: Math.random() * 0.1,
+                frequency: Math.random() * 0.1
+            };
+            
+            scene.add(mesh);
+            objects.push(mesh);
+        }
+
+        camera.position.z = 15;
+
+        // Анимация
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+            
+            objects.forEach((obj, idx) => {
+                obj.rotation.x += obj.userData.speedRotX;
+                obj.rotation.y += obj.userData.speedRotY;
+                obj.rotation.z += obj.userData.speedRotZ;
+                
+                // Плавное движение
+                obj.position.x += Math.sin(time * obj.userData.frequency + idx) * obj.userData.amplitude;
+                obj.position.y += Math.cos(time * obj.userData.frequency + idx) * obj.userData.amplitude;
+            });
+            
+            // Медленное вращение всей сцены
+            scene.rotation.y = time * 0.05;
+            
+            renderer.render(scene, camera);
+        }
+
+        // Обработка изменения размера окна
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

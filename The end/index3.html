@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #000; }
+        #asciiContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            font-size: 8px;
+            line-height: 8px;
+            color: #0f0;
+            white-space: pre;
+            text-align: center;
+            filter: contrast(2) brightness(1.2);
+            overflow: hidden;
+            cursor: none;
+        }
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, rgba(0,255,0,0), #0f0, rgba(0,255,0,0));
+            animation: scan 3s linear infinite;
+            box-shadow: 0 0 15px #0f0;
+            z-index: 100;
+            pointer-events: none;
+        }
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            5% { opacity: 1; }
+            95% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="asciiContainer"></div>
+    <div class="scan-line"></div>
+
+    <script>
+        const container = document.getElementById('asciiContainer');
+        const density = " .:-=+*#%@"; // Градации яркости
+        let frame = 0;
+
+        // Создаем скрытое изображение для обработки
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = 'https://images.unsplash.com/photo-1549490349-8643362247b5?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&w=800'; // Замените на свое изображение
+
+        img.onload = function() {
+            function renderASCII() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Настройка размера для ASCII (меньше разрешение = более читаемый ASCII)
+                const width = 100;
+                const height = width * (img.height / img.width) * 0.5;
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Рисуем изображение с искажением для анимации
+                ctx.drawImage(img, 0, 0, width, height);
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                
+                let asciiArt = '';
+                
+                // Создаем волновой эффект
+                const wave = Math.sin(frame * 0.1) * 3;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const index = (y * width + x) * 4;
+                        const r = data[index];
+                        const g = data[index + 1];
+                        const b = data[index + 2];
+                        
+                        // Яркость пикселя
+                        const brightness = (0.3 * r + 0.6 * g + 0.1 * b);
+                        
+                        // Динамическое искажение
+                        const distortX = x + Math.sin(y * 0.1 + frame * 0.05) * 2;
+                        const distortY = y + Math.cos(x * 0.1 + frame * 0.03) * 2;
+                        
+                        // Пропускаем искаженные пиксели за границами
+                        if (distortX < 0 || distortX >= width || distortY < 0 || distortY >= height) {
+                            asciiArt += ' ';
+                            continue;
+                        }
+                        
+                        // Получаем символ на основе яркости
+                        const charIndex = Math.floor((brightness / 255) * (density.length - 1));
+                        asciiArt += density.charAt(charIndex);
+                    }
+                    asciiArt += '\n';
+                }
+                
+                container.textContent = asciiArt;
+                frame++;
+                requestAnimationFrame(renderASCII);
+            }
+            renderASCII();
+        };
+
+        // Случайные "глитч" эффекты
+        setInterval(() => {
+            if (Math.random() > 0.7) {
+                container.style.transform = `translateX(${Math.random() * 10 - 5}px)`;
+                setTimeout(() => {
+                    container.style.transform = 'translateX(0)';
+                }, 100);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
